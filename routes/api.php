@@ -26,5 +26,11 @@ Route::group(['prefix' => 'v1'], function() {
     Route::post('/shots', 'Api\ShotController@store');
     
     Route::get('/shots', 'Api\ShotController@index');
+
+    Route::delete('/shots/{id}', 'Api\ShotController@destroy');
+
+    Route::get('/shots/{id}', 'Api\ShotController@show');
+
+    Route::put('/shots/{id}', 'Api\ShotController@update');
     
 });

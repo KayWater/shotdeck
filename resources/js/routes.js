@@ -42,6 +42,16 @@ export const constantRouterMap = [
             title: 'ShotCreate',
         }
     },
+    {
+        path: '/shots/:id/edit',
+        component: Vue.component('ShotEdit', require('./components/pages/shots/ShotEdit').default),
+        name: 'shot-edit',
+        meta: {
+            title: 'ShotEdit',
+        },
+        props: true,
+    },
+
 
     {
         path: '/search',
@@ -50,8 +60,9 @@ export const constantRouterMap = [
         meta: {
             title: 'Search',
         },
-    }
+    },
 
+    
 ];
 
 export default new VueRouter({

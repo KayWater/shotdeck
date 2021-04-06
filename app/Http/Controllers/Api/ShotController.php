@@ -39,6 +39,9 @@ class ShotController extends Controller
         $lensLanguage = $request->query('lensLanguage');
         $aspectRatio = $request->query('aspectRatio');
         $viewpoint = $request->query('viewpoint');
+
+        $limit = $request->query('limit', 20);
+        $offset = $request->query('offset', 0);
         
         $shots = Shot::when($keyword, function ($query, $keyword) {
             $keyword = explode(' ', $keyword);
@@ -147,6 +150,7 @@ class ShotController extends Controller
             $viewpoint = is_array($viewpoint) ? $viewpoint : [$viewpoint];
             return $query->whereIn('viewpoint', $viewpoint);
         })
+        ->limit($limit)->offset($offset)
         ->get();
 
         return response()->json([
@@ -169,11 +173,17 @@ class ShotController extends Controller
 
         $now = Carbon::now();
 
-        // temporary path
+        // 临时存储目录
         $tempPath = 'temp/shot/' . $now->year . '/' . $now->month;
-        // temporary file name
+
+        // 目录不存在
+        if ( ! Storage::disk('public')->exists($tempPath) ) {
+            Storage::disk('public')->makeDirectory($tempPath);
+        }
+
+        // 临时存储文件名加目录
         $tempFullName = $tempPath . '/' . $fileName;
-        // temporary partial file name
+        // 临时分块文件名加目录
         $tempPartialFileName = $tempFullName . '.part';
 
         $config = [
@@ -185,7 +195,7 @@ class ShotController extends Controller
         $ffmpeg = FFMpeg\FFMpeg::create($config);
         $ffprobe = $ffmpeg->getFFProbe();
 
-        // file is not been slice
+        // 未分块
         if ($chunkCount === 1) {
             $mimeType = $fileChunk->getMimeType();
 
@@ -224,6 +234,7 @@ class ShotController extends Controller
         } else {
             // Append the chunk to partial file
             // Storage::disk('public')->append($tempPartialFileName, $fileChunk->get());
+            // 注意 Storage::append() 会导致二进制文件错误
             File::append(
                 public_path(Storage::url($tempPartialFileName)), 
                 $fileChunk->get());
@@ -357,6 +368,120 @@ class ShotController extends Controller
 
         return response()->json([
             'shot' => $shot,
+        ]);
+    }
+
+    public function destroy(Request $request, $id) {
+        $shot = Shot::findOrFail($id);
+
+        $videoFile = $shot->url;
+        $thumbnailFile = $shot->thumbnail;
+
+        //删除文件
+        File::delete(public_path($videoFile));
+        File::delete(public_path($thumbnailFile));
+
+        $shot->delete();
+
+        return response()->json([
+            'shot' => $shot
+        ]);
+    }
+
+    public function show(Request $request, $id) {
+
+        $shot = Shot::findOrFail($id);
+
+        return response()->json([
+            'shot' => $shot
+        ]);
+    }
+
+    public function update(Request $request, $id) {
+        
+        $shot = Shot::findOrFail($id);
+
+        $pattern = "/\s+/i";
+
+        $filmName = trim($request->input('filmName'));
+        $fileList = $request->input('fileList');
+
+        $genre = $request->input('genre');
+        $genre = $genre ? json_encode($genre, JSON_UNESCAPED_UNICODE) : '';
+
+        $director = trim($request->input('director'));
+        $director = $director ? preg_replace($pattern, ' ', $director) : '';
+        $director = $director ? json_encode(explode(' ', $director), JSON_UNESCAPED_UNICODE) : '';
+
+        $actors = trim($request->input('actors'));
+        $actors = $actors ? preg_replace($pattern, ' ', $actors) : '';
+        $actors = $actors ? json_encode(explode(' ', $actors), JSON_UNESCAPED_UNICODE) : '';
+
+        $rolesAndGender = $request->input('rolesAndGender');
+        $tags = trim($request->input('tags'));
+        $tags = $tags ? preg_replace($pattern, ' ', $tags) : '';
+        $tags = $tags ? json_encode(explode(' ', $tags), JSON_UNESCAPED_UNICODE) : '';
+
+        $color = $request->input('color');
+        $colorSystem = $request->input('colorSystem');
+        $timeOfDay = $request->input('timeOfDay');
+        $lighting = $request->input('lighting');
+        $lightingType = $request->input('lightingType');
+        $shotType = $request->input('shotType');
+        $shotType = $shotType ? json_encode($shotType, JSON_UNESCAPED_UNICODE) : '';
+        $cameraAngle = $request->input('cameraAngle');
+        $cameraAngle = $cameraAngle ? json_encode($cameraAngle, JSON_UNESCAPED_UNICODE) : '';
+        $cameraMovement = $request->input('cameraMovement');
+        $cameraMovement = $cameraMovement ? json_encode($cameraMovement, JSON_UNESCAPED_UNICODE) : '';
+        $lensLanguage = $request->input('lensLanguage');
+        $lensLanguage = $lensLanguage ? json_encode($lensLanguage, JSON_UNESCAPED_UNICODE) : '';
+        $aspectRatio = $request->input('aspectRatio');
+        $viewpoint = $request->input('viewpoint');
+
+        if ($fileList) {
+            $file = $fileList[0];
+            $url = $file['url'];
+            $thumbnail = $file['thumbnail'];
+            $duration = $file['duration'];
+
+            // Move picture file to actually storage
+            $now = Carbon::now();
+            // temporary path
+            $path = 'upload/shot/' . $now->year . '/' . $now->month;
+
+            $videoPath = $url ? Storage::disk('public')->putFile($path, 
+                new \Illuminate\Http\File(public_path($url))) : '';
+            $thumbnailPath = $thumbnail ? Storage::disk('public')->putFile($path, 
+                new \Illuminate\Http\File(public_path($thumbnail))) : '';
+
+            $shot->url = $videoPath ? Storage::url($videoPath) : '';
+            $shot->thumbnail = $thumbnailPath ? storage::url($thumbnailPath) : '';
+
+            $shot->duration = $duration;
+        }
+        
+        $shot->film = $filmName;
+        $shot->genre = $genre;
+        $shot->director = $director;
+        $shot->actors = $actors;
+        $shot->roles_and_gender = $rolesAndGender;
+        $shot->tags = $tags;
+        $shot->color = $color;
+        $shot->color_system = $colorSystem;
+        $shot->time_of_day = $timeOfDay;
+        $shot->aspect_ratio = $aspectRatio;
+        $shot->lighting = $lighting;
+        $shot->lighting_type = $lightingType;
+        $shot->shot_type = $shotType;
+        $shot->camera_angle = $cameraAngle;
+        $shot->camera_movement = $cameraMovement;
+        $shot->lens_language = $lensLanguage;
+        $shot->viewpoint = $viewpoint;
+        $shot->user_id = 1;
+        $shot->save();
+
+        return response()->json([
+            'shot' => $shot
         ]);
     }
 }

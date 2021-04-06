@@ -2,10 +2,12 @@
     <div class="player fixed inset-0" v-bind:class="[ visible ? 'visible' : 'invisible']">
         <div class="player-container relative w-full h-full flex justify-items-center">
             <div class="flex relative w-11/12 lg:w-5/6 xl:w-5/6 sm:ml-2 md:m-auto lg:m-auto xl:m-auto self-center">
-                <video ref="video" class="w-10/12" controls preload="auto">
-                    <source :src="src" type="video/mp4">
-                </video>
-                <ul class="text-white ml-2 w-2/12">
+                <div class="w-10/12">
+                    <video ref="video" class="w-full"  controls preload="auto">
+                        <source :src="src" type="video/mp4">
+                    </video>
+                </div>
+                <ul class="text-white ml-2 w-2/12 flex-none">
                     <li class="flex">
                         <span class="w-2/5 inline-block text-right self-start">片名&nbsp;&nbsp;:</span>
                         <span class="w-2/5 inline-block ml-2">{{ info.film }}</span>

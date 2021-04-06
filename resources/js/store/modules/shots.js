@@ -37,6 +37,37 @@ export const shots = {
                         reject(error.response.data);
                     });
             });
+        },
+
+        deleteShot({commit}, id) {
+            return new Promise((resolve, reject) => {
+                ShotAPI.deleteShot(id)
+                    .then((response) => {
+                        resolve(response.data);
+                    }).catch((error) => {
+                        reject(error.response.data);
+                    });
+            })
+        },
+
+        getShot({commit}, id) {
+            return new Promise((resolve, reject) => {
+                ShotAPI.getShot(id).then((response) => {
+                    resolve(response.data);
+                }).catch((error) => {
+                    reject(error.response.data);
+                });
+            })
+        },
+        
+        updateShot({commit}, data) {
+            return new Promise((resolve, reject) => {
+                ShotAPI.updateShot(data).then((response) => {
+                    resolve(response.data);
+                }).catch((error) => {
+                    reject(error.response.data);
+                });
+            })
         }
     },
 

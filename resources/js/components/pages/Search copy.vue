@@ -1,11 +1,11 @@
 <template>
     <app-layout>
         <div class="container-fluid mt-10 flex ">
-            <div class="w-2/12 mr-4">
+            <div class="w-2/12 mr-4 fixed h-full">
                 <el-input placeholder="请输入内容" v-model="keyword">
                     <el-button slot="append" @click="handleSearch">搜索</el-button>
                 </el-input>
-                <el-collapse v-model="activeNames">
+                <el-collapse v-model="activeNames" class="filter-container overflow-auto">
                     <el-collapse-item title="影片类型" name='1' >
                         <el-checkbox-group v-model="genre" @change="handleGenreChange">
                             <el-checkbox v-for="item in filters.genres" :key="item.name" :label="item.name">
@@ -86,8 +86,8 @@
                     </el-collapse-item>
                 </el-collapse>
             </div>
-            <div class="w-9/12">
-                <el-row :gutter="10">
+            <div class="w-8/12 gallery-container">
+                <el-row :gutter="10" >
                     <template v-for="item in shots">
                         <el-col :span="6" :key="item.id">
                             <div class="video-item h-48" @click="play(item)">
@@ -96,15 +96,17 @@
                                     <i class="el-icon-video-play text-6xl text-white"></i>
                                 </div>
                             </div>
-                            <p class="text-center">{{ item.duration | durationFormat }}</p>
+                            <div class="text-center">
+                                <span>{{ item.duration | durationFormat }}</span>
+                                <a class="float-right cursor-pointer" @click="deleteShot(item)"><i class="el-icon-delete"></i></a>
+                            </div>
                         </el-col>
                     </template>
                 </el-row>
             </div>
         </div>
-        <popover-player :src="videoSrc" :visible.sync="playerVisible" :play.sync="autoplay" :info="info">
-            
-        </popover-player>
+        <popover-player :src="videoSrc" :visible.sync="playerVisible" :play.sync="autoplay" :info="info"></popover-player>
+        <el-backtop></el-backtop>
     </app-layout>
 </template>
 
@@ -802,7 +804,7 @@ export default {
             this.autoplay = true;
             this.info =  item;
         },
-
+        // 初始化过滤器
         initFilters(params) {
             this.genre = params.hasOwnProperty('genre') ? params.genre : this.genre;
             this.rolesAndGender = params.hasOwnProperty('rolesAndGender') ? params.rolesAndGender : this.rolesAndGender
@@ -816,14 +818,42 @@ export default {
             this.cameraMovement = params.hasOwnProperty('cameraMovement') ? params.cameraMovement : this.cameraMovement
             this.aspectRatio = params.hasOwnProperty('aspectRatio') ? params.aspectRatio : this.aspectRatio
             this.viewpoint = params.hasOwnProperty('viewpoint') ? params.viewpoint : this.viewpoint
+        },
+
+        //删除镜头
+        deleteShot(item) {
+            let vm = this;
+
+            this.$confirm('此操作将永久删除该镜头, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.$store.dispatch('shots/deleteShot', item.id)
+                .then((response) => {
+                    let index = vm.shots.findIndex((element) => element.id === item.id );
+                    if (index >= 0) {
+                        vm.shots.splice(index, 1);
+                    }
+                    this.$message({
+                        type: 'success',
+                        message: '删除成功!'
+                    });
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                });          
+            });
         }
     },
 
     created() {
-        console.log('created: ')
-        console.log(this.$route);
         this.keyword = this.$route.query.keyword;
-        //this.initFilters(this.$route.query);
         this.getShots(this.$route.query);
         // if (!this.isLogined) {
         //     return;
@@ -835,7 +865,6 @@ export default {
         //     }).catch((error) => {
 
         //     });
-        // this.getShots();
     },
 
     beforeRouteUpdate(to, from, next) {
@@ -880,5 +909,13 @@ export default {
       height: 100%;
       background: #000;
       opacity: 0.7;
+  }
+
+  .gallery-container { 
+      margin-left: 20vw;
+  }
+
+  .filter-container{
+      height: 80vh;
   }
 </style>

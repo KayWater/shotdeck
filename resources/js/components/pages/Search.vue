@@ -1,7 +1,7 @@
 <template>
     <app-layout>
         <div class="container-fluid mt-10 flex ">
-            <div class="w-2/12 mr-4 fixed h-full">
+            <div class="w-2/12 mr-4 fixed h-full ">
                 <el-input placeholder="请输入内容" v-model="keyword">
                     <el-button slot="append" @click="handleSearch">搜索</el-button>
                 </el-input>
@@ -86,7 +86,7 @@
                     </el-collapse-item>
                 </el-collapse>
             </div>
-            <div class="w-8/12 gallery-container">
+            <div class="w-8/12 gallery-container" >
                 <el-row :gutter="10">
                     <template v-for="item in shots">
                         <el-col :span="6" :key="item.id">
@@ -96,20 +96,26 @@
                                     <i class="el-icon-video-play text-6xl text-white"></i>
                                 </div>
                             </div>
-                            <p class="text-center">{{ item.duration | durationFormat }}</p>
+                            <div class="text-center">
+                                <span>{{ item.duration | durationFormat }}</span>
+                                <router-link :to="'/shots/'+ item.id +'/edit'" class="float-right"><i class="el-icon-edit"></i></router-link>
+                                <a class="float-right cursor-pointer mr-2" @click="deleteShot(item)"><i class="el-icon-delete"></i></a>
+                            </div>
                         </el-col>
                     </template>
                 </el-row>
+                <my-infinite-scroll @loadMore="loadMore"></my-infinite-scroll>
             </div>
         </div>
         <popover-player :src="videoSrc" :visible.sync="playerVisible" :play.sync="autoplay" :info="info"></popover-player>
-
+        <el-backtop></el-backtop>
     </app-layout>
 </template>
 
 <script>
 import AppLayout from '../layout/AppLayout.vue';
 import PopoverPlayer from '../global/PopoverPlayer.vue';
+import MyInfiniteScroll from '../global/MyInfiniteScroll.vue';
 
 import { CONFIG } from '../../config.js';
 
@@ -117,6 +123,7 @@ export default {
     components: {
         AppLayout,
         PopoverPlayer,
+        MyInfiniteScroll,
     },
     data() {
         return {
@@ -124,6 +131,8 @@ export default {
 
             keyword: "",
             shots: "",
+            limit: 20,
+            offset: 0,
 
             videoSrc: "",
             playerVisible: false,
@@ -690,6 +699,24 @@ export default {
             this.$store.dispatch('shots/getShots', params )
                 .then((response) => {
                     this.shots = response.shots;
+                    this.offset += response.shots.length;
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+        },
+
+        loadMore() {
+            console.log('called loadmore')
+            let query = Object.assign({}, this.$route.query);
+            query = Object.assign(query, { 
+                limit: this.limit,
+                offset: this.offset
+            });
+            this.$store.dispatch('shots/getShots', query )
+                .then((response) => {
+                    this.shots = this.shots.concat(response.shots);
+                    this.offset += response.shots.length;
                     console.log(response);
                 }).catch((error) => {
                     console.log(error);
@@ -698,7 +725,12 @@ export default {
 
         handleSearch() {
             if (this.keyword) {
-                this.$router.replace({ path: 'search', query: { keyword : this.keyword } });
+                this.$router.replace({ path: 'search', query: { 
+                        keyword : this.keyword,
+                        limit: this.limit,
+                        offset: 0,
+                    } 
+                });
             } else {
                 this.$router.replace({ path: 'search' });
             }
@@ -801,7 +833,7 @@ export default {
             this.autoplay = true;
             this.info =  item;
         },
-
+        // 初始化过滤器
         initFilters(params) {
             this.genre = params.hasOwnProperty('genre') ? params.genre : this.genre;
             this.rolesAndGender = params.hasOwnProperty('rolesAndGender') ? params.rolesAndGender : this.rolesAndGender
@@ -815,15 +847,47 @@ export default {
             this.cameraMovement = params.hasOwnProperty('cameraMovement') ? params.cameraMovement : this.cameraMovement
             this.aspectRatio = params.hasOwnProperty('aspectRatio') ? params.aspectRatio : this.aspectRatio
             this.viewpoint = params.hasOwnProperty('viewpoint') ? params.viewpoint : this.viewpoint
+        },
+
+        //删除镜头
+        deleteShot(item) {
+            let vm = this;
+
+            this.$confirm('此操作将永久删除该镜头, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.$store.dispatch('shots/deleteShot', item.id)
+                .then((response) => {
+                    let index = vm.shots.findIndex((element) => element.id === item.id );
+                    if (index >= 0) {
+                        vm.shots.splice(index, 1);
+                    }
+                    this.$message({
+                        type: 'success',
+                        message: '删除成功!'
+                    });
+                    console.log(response);
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                });          
+            });
         }
     },
 
     created() {
-        console.log('created: ')
-        console.log(this.$route);
-        this.keyword = this.$route.query.keyword;
-        //this.initFilters(this.$route.query);
-        this.getShots(this.$route.query);
+        let query = Object.assign({}, this.$route.query);
+        query = Object.assign(query, { 
+            limit: this.limit,
+            offset: this.offset
+        });
+        this.getShots(query);
         // if (!this.isLogined) {
         //     return;
         // }
@@ -834,12 +898,13 @@ export default {
         //     }).catch((error) => {
 
         //     });
-        // this.getShots();
     },
 
     beforeRouteUpdate(to, from, next) {
         let params = to.query;
         this.initFilters(to.query);
+        delete params.limit;
+        delete params.offset;
         this.$store.dispatch('shots/getShots', params )
             .then((response) => {
                 this.shots = response.shots;
