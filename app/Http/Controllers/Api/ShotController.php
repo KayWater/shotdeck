@@ -6,9 +6,18 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Arr;
+use Illuminate\Database\Eloquent\Builder;
+
 use FFMpeg;
 
 use App\Models\Shot;
+use App\Models\Tag;
+use App\Models\Movie;
+use App\Models\Property;
+use App\Models\PropertyValue;
+use App\Models\OldShot;
+use App\Models\Person;
 
 class ShotController extends Controller
 {
@@ -24,21 +33,14 @@ class ShotController extends Controller
 
     public function index(Request $request) 
     {
-        $keyword = $request->query('keyword');
+        $pattern = "/\s+/i";
+        $keyword = trim($request->input('keyword'));
+        $keyword = $keyword ? preg_replace($pattern, ' ', $keyword) : '';
+        $movieId = $request->query('movieId');
+
         $genre = $request->query('genre');
-        
-        $rolesAndGender = $request->query('rolesAndGender');
-        $color = $request->query('color');
-        $colorSystem = $request->query('colorSystem');
-        $timeOfDay = $request->query('timeOfDay');
-        $lighting = $request->query('lighting');
-        $lightingType = $request->query('lightingType');
-        $shotType = $request->query('shotType');
-        $cameraAngle = $request->query('cameraAngle');
-        $cameraMovement = $request->query('cameraMovement');
-        $lensLanguage = $request->query('lensLanguage');
-        $aspectRatio = $request->query('aspectRatio');
-        $viewpoint = $request->query('viewpoint');
+
+        $filters = json_decode($request->query('filters'), JSON_OBJECT_AS_ARRAY);
 
         $limit = $request->query('limit', 20);
         $offset = $request->query('offset', 0);
@@ -49,109 +51,50 @@ class ShotController extends Controller
             $len = count($keyword);
             for ($i = 0; $i<$len; $i++) {
                 if ($i === 0) {
-                    $query->where('film', 'like', '%'.$keyword[$i].'%')
-                    ->orWhere('tags', 'like', '%'.$keyword[$i].'%');
+                    $moviesHasKeyword = Movie::where('name', 'like', '%'.$keyword[$i].'%')->get();
+                    $query->whereIn('movie_id', $moviesHasKeyword->pluck('id'))
+                        ->orWhereHas('tags', function(Builder $query) use ($keyword, $i) {
+                            $query->where('name', 'like', '%'.$keyword[$i].'%');
+                        });
                 } else {
-                    $query->orWhere('film', 'like', '%'.$keyword[$i].'%')
-                    ->orWhere('tags', 'like', '%'.$keyword[$i].'%');
+                    $moviesHasKeyword = Movie::where('name', 'like', '%'.$keyword[$i].'%')->get();
+                    $query->orWhereIn('movie_id', $moviesHasKeyword->pluck('id'))
+                        ->orWhereHas('tags', function(Builder $query) use ($keyword, $i) {
+                            $query->where('name', 'like', '%'.$keyword[$i].'%');
+                        });
                 }
             }
             return $query;
         })
         ->when($genre, function ($query, $genre) {
-            $genre = is_array($genre) ? $genre : [$genre];
-            $len = count($genre);
-            for ($i = 0; $i<$len; $i++) {
-                if ($i === 0) {
-                    $query->where('genre', 'like', '%'.$genre[$i].'%');
-                } else {
-                    $query->orWhere('genre', 'like', '%'.$genre[$i].'%');
-                }
+            if (is_array($genre)) {
+                $movies = Movie::whereHas('genres', function(Builder $query) use ($genre) {
+                    $query->whereIn('id', $genre);
+                })->get();
+            } else {
+                $movies = Movie::whereHas('genres', function(Builder $query) use ($genre) {
+                    $query->where('id', $genre);
+                })->get();
+            } 
+            return $query->whereIn('movie_id', $movies->pluck('id'));
+        })
+        ->when($filters, function($query, $filters) {
+            foreach($filters as $key => $values) {
+                $query->where(function ($query) use ($key, $values) {
+                    foreach($values as $index => $value) {
+                        if ($index == 0) {
+                            $query->whereJsonContains('attributes->'.$key, $value);
+                        } else {
+                            $query->orWhereJsonContains('attributes->'.$key, $value);
+                        }
+                    }
+                });
             }
-            return $query;
-        })
-        ->when($rolesAndGender, function ($query, $rolesAndGender) {
-            $rolesAndGender = is_array($rolesAndGender) ? $rolesAndGender : [$rolesAndGender];
-            return $query->whereIn('roles_and_gender', $rolesAndGender);
-        })
-        ->when($color, function($query, $color) {
-            $color = is_array($color) ? $color : [$color];
-            return $query->whereIn('color', $color);
-        })
-        ->when($colorSystem, function($query, $colorSystem) {
-            $colorSystem = is_array($colorSystem) ? $colorSystem: [$colorSystem];
-            return $query->whereIn('color_system', $colorSystem);
-        })
-        ->when($timeOfDay, function($query, $timeOfDay) {
-            $timeOfDay = is_array($timeOfDay) ? $timeOfDay : [$timeOfDay];
-            return $query->whereIn('time_of_day', $timeOfDay);
-        })
-        ->when($lighting, function($query, $lighting) {
-            $lighting = is_array($lighting) ? $lighting : [$lighting];
-            return $query->whereIn('lighting', $lighting);
-        })
-        ->when($lightingType, function($query, $lightingType) {
-            $lightingType = is_array($lightingType) ? $lightingType : [$lightingType];
-            return $query->whereIn('lighting_type', $lightingType);
-        })
-        ->when($shotType, function($query, $shotType) {
-            $shotType = is_array($shotType) ? $shotType : [$shotType];
-            $len = count($shotType);
-            for ($i = 0; $i<$len; $i++) {
-                if ($i === 0) {
-                    $query->where('shot_type', 'like', '%'.$shotType[$i].'%');
-                } else {
-                    $query->orWhere('shot_type', 'like', '%'.$shotType[$i].'%');
-                }
-            }
-            return $query;
-        })
-        ->when($cameraAngle, function($query, $cameraAngle) {
-            $cameraAngle = is_array($cameraAngle) ? $cameraAngle : [$cameraAngle];
-            $len = count($cameraAngle);
-            for ($i = 0; $i<$len; $i++) {
-                if ($i === 0) {
-                    $query->where('camera_angle', 'like', '%'.$cameraAngle[$i].'%');
-                } else {
-                    $query->orWhere('camera_angle', 'like', '%'.$cameraAngle[$i].'%');
-                }
-            }
-            return $query;
-        })
-        ->when($cameraMovement, function($query, $cameraMovement) {
-            $cameraMovement = is_array($cameraMovement) ? $cameraMovement : [$cameraMovement];
-            $len = count($cameraMovement);
-            for ($i = 0; $i<$len; $i++) {
-                if ($i === 0) {
-                    $query->where('camera_movement', 'like', '%'.$cameraMovement[$i].'%');
-                } else {
-                    $query->orWhere('camera_movement', 'like', '%'.$cameraMovement[$i].'%');
-                }
-            }
-            return $query;
-        })
-        ->when($lensLanguage, function($query, $lensLanguage) {
-            $lensLanguage = is_array($lensLanguage) ? $lensLanguage : [$lensLanguage];
-            $len = count($lensLanguage);
-            for ($i = 0; $i<$len; $i++) {
-                if ($i === 0) {
-                    $query->where('lens_language', 'like', '%'.$lensLanguage[$i].'%');
-                } else {
-                    $query->orWhere('lens_language', 'like', '%'.$lensLanguage[$i].'%');
-                }
-            }
-            return $query;
-        })
-        ->when($aspectRatio, function($query, $aspectRatio) {
-            $aspectRatio = is_array($aspectRatio) ? $aspectRatio : [$aspectRatio];
-            return $query->whereIn('aspect_ratio', $aspectRatio);
-        })
-        ->when($viewpoint, function($query, $viewpoint) {
-            $viewpoint = is_array($viewpoint) ? $viewpoint : [$viewpoint];
-            return $query->whereIn('viewpoint', $viewpoint);
+        })->when($movieId, function($query, $movieId) {
+            return $query->where('movie_id', $movieId);
         })
         ->limit($limit)->offset($offset)
-        ->get();
+        ->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'shots' => $shots,
@@ -159,12 +102,12 @@ class ShotController extends Controller
     }
     
     /**
-     * Handle material files upload
+     * Handle shot files upload
      * 
      * @param \Illuminate\Http\Request $request
      * @return Response
      */
-    public function upload(Request $request) 
+    public function upload(Request $request)
     {
         $fileName = $request->input('fileName');
         $fileChunk = $request->file('fileChunk'); // The chunk of file
@@ -291,52 +234,21 @@ class ShotController extends Controller
     {
         $pattern = "/\s+/i";
 
-        $filmName = trim($request->input('filmName'));
+        $movieId = $request->input('movieId');
         $fileList = $request->input('fileList');
-
-        $genre = $request->input('genre');
-        $genre = $genre ? json_encode($genre, JSON_UNESCAPED_UNICODE) : '';
-
-        $director = trim($request->input('director'));
-        $director = $director ? preg_replace($pattern, ' ', $director) : '';
-        $director = $director ? json_encode(explode(' ', $director), JSON_UNESCAPED_UNICODE) : '';
-
-        $actors = trim($request->input('actors'));
-        $actors = $actors ? preg_replace($pattern, ' ', $actors) : '';
-        $actors = $actors ? json_encode(explode(' ', $actors), JSON_UNESCAPED_UNICODE) : '';
-
-        $rolesAndGender = $request->input('rolesAndGender');
-        $tags = trim($request->input('tags'));
-        $tags = $tags ? preg_replace($pattern, ' ', $tags) : '';
-        $tags = $tags ? json_encode(explode(' ', $tags), JSON_UNESCAPED_UNICODE) : '';
-
-        $color = $request->input('color');
-        $colorSystem = $request->input('colorSystem');
-        $timeOfDay = $request->input('timeOfDay');
-        $lighting = $request->input('lighting');
-        $lightingType = $request->input('lightingType');
-        $shotType = $request->input('shotType');
-        $shotType = $shotType ? json_encode($shotType, JSON_UNESCAPED_UNICODE) : '';
-        $cameraAngle = $request->input('cameraAngle');
-        $cameraAngle = $cameraAngle ? json_encode($cameraAngle, JSON_UNESCAPED_UNICODE) : '';
-        $cameraMovement = $request->input('cameraMovement');
-        $cameraMovement = $cameraMovement ? json_encode($cameraMovement, JSON_UNESCAPED_UNICODE) : '';
-        $lensLanguage = $request->input('lensLanguage');
-        $lensLanguage = $lensLanguage ? json_encode($lensLanguage, JSON_UNESCAPED_UNICODE) : '';
-        $aspectRatio = $request->input('aspectRatio');
-        $viewpoint = $request->input('viewpoint');
-        
-
         $file = $fileList[0];
         $url = $file['url'];
         $thumbnail = $file['thumbnail'];
         $duration = $file['duration'];
-        
+
+        $actors = $request->input('actors');
+
+        $attributes = $request->input('attributes');
+
         // Move picture file to actually storage
         $now = Carbon::now();
         // temporary path
         $path = 'upload/shot/' . $now->year . '/' . $now->month;
-
         $videoPath = $url ? Storage::disk('public')->putFile($path, 
             new \Illuminate\Http\File(public_path($url))) : '';
         $thumbnailPath = $thumbnail ? Storage::disk('public')->putFile($path, 
@@ -345,33 +257,39 @@ class ShotController extends Controller
         $shot = new Shot();
         $shot->url = $videoPath ? Storage::url($videoPath) : '';
         $shot->thumbnail = $thumbnailPath ? storage::url($thumbnailPath) : '';
-        $shot->film = $filmName;
-        $shot->genre = $genre;
-        $shot->director = $director;
-        $shot->actors = $actors;
+        $shot->movie_id = $movieId;
+        // $shot->attributes = json_encode($attributes, JSON_UNESCAPED_UNICODE);
+        // 在Model中设置 $casts 属性后 Laravel 会自动将 $attributes 转换为JSON格式
+        $shot->attributes = $attributes;
         $shot->duration = $duration;
-        $shot->roles_and_gender = $rolesAndGender;
-        $shot->tags = $tags;
-        $shot->color = $color;
-        $shot->color_system = $colorSystem;
-        $shot->time_of_day = $timeOfDay;
-        $shot->aspect_ratio = $aspectRatio;
-        $shot->lighting = $lighting;
-        $shot->lighting_type = $lightingType;
-        $shot->shot_type = $shotType;
-        $shot->camera_angle = $cameraAngle;
-        $shot->camera_movement = $cameraMovement;
-        $shot->lens_language = $lensLanguage;
-        $shot->viewpoint = $viewpoint;
         $shot->user_id = 1;
         $shot->save();
+
+        $shot->people()->attach($actors);
+
+        $tags = trim($request->input('tags'));
+        $tags = $tags ? preg_replace($pattern, ' ', $tags) : '';
+        $tags = explode(' ', $tags);
+        $tagItems = [];
+        foreach($tags as $tag) {
+            $tagItem = Tag::firstOrNew(['name' => $tag]);
+            if (!$tagItem->exist) {
+                $tagItem->name = $tag;
+                $tagItem->status = 0;
+                $tagItem->save();
+            }
+            array_push($tagItems, $tagItem->id);
+        }
+
+        $shot->tags()->attach($tagItems);
 
         return response()->json([
             'shot' => $shot,
         ]);
     }
 
-    public function destroy(Request $request, $id) {
+    public function destroy(Request $request, $id) 
+    {
         $shot = Shot::findOrFail($id);
 
         $videoFile = $shot->url;
@@ -381,6 +299,9 @@ class ShotController extends Controller
         File::delete(public_path($videoFile));
         File::delete(public_path($thumbnailFile));
 
+        $shot->people()->detach();
+        $shot->tags()->detach();
+
         $shot->delete();
 
         return response()->json([
@@ -388,55 +309,53 @@ class ShotController extends Controller
         ]);
     }
 
-    public function show(Request $request, $id) {
+    public function show(Request $request, $id) 
+    {
 
         $shot = Shot::findOrFail($id);
+
+        $attributes = $shot->attributes;
+        $attributesStr = [];
+        foreach($attributes as $key => $values) {
+            $property = Property::select('id', 'name')->with(['values' => function($query) use ($values) {
+                $isMulti = is_array($values);
+                $query->select('id', 'property_id', 'name')->when($isMulti, function($query) use ($values) {
+                    return $query->whereIn('id', $values);
+                }, function($query) use ($values) {
+                    return $query->where('id', $values);
+                });
+            }])->where('id', $key)->first();
+            if ($property->exists) {
+                array_push($attributesStr, $property);
+            }
+        }
+
+        $shot->load(['movie' => function($query) {
+            $query->with(['people' => function ($query) {
+                $query->wherePivot('role_type', Movie::MOVIE_DIRECTOR);
+            }])->with('genres');
+        }]);
+
+        $shot->load('people');
+        $shot->load('tags');
+
+        $shot->attributes_str = $attributesStr;
 
         return response()->json([
             'shot' => $shot
         ]);
     }
 
-    public function update(Request $request, $id) {
-        
-        $shot = Shot::findOrFail($id);
-
+    public function update(Request $request, $id) 
+    {
         $pattern = "/\s+/i";
-
-        $filmName = trim($request->input('filmName'));
+        $shot = Shot::findOrFail($id);
+        $movieId = $request->input('movieId');
         $fileList = $request->input('fileList');
 
-        $genre = $request->input('genre');
-        $genre = $genre ? json_encode($genre, JSON_UNESCAPED_UNICODE) : '';
+        $actors = $request->input('actors');
 
-        $director = trim($request->input('director'));
-        $director = $director ? preg_replace($pattern, ' ', $director) : '';
-        $director = $director ? json_encode(explode(' ', $director), JSON_UNESCAPED_UNICODE) : '';
-
-        $actors = trim($request->input('actors'));
-        $actors = $actors ? preg_replace($pattern, ' ', $actors) : '';
-        $actors = $actors ? json_encode(explode(' ', $actors), JSON_UNESCAPED_UNICODE) : '';
-
-        $rolesAndGender = $request->input('rolesAndGender');
-        $tags = trim($request->input('tags'));
-        $tags = $tags ? preg_replace($pattern, ' ', $tags) : '';
-        $tags = $tags ? json_encode(explode(' ', $tags), JSON_UNESCAPED_UNICODE) : '';
-
-        $color = $request->input('color');
-        $colorSystem = $request->input('colorSystem');
-        $timeOfDay = $request->input('timeOfDay');
-        $lighting = $request->input('lighting');
-        $lightingType = $request->input('lightingType');
-        $shotType = $request->input('shotType');
-        $shotType = $shotType ? json_encode($shotType, JSON_UNESCAPED_UNICODE) : '';
-        $cameraAngle = $request->input('cameraAngle');
-        $cameraAngle = $cameraAngle ? json_encode($cameraAngle, JSON_UNESCAPED_UNICODE) : '';
-        $cameraMovement = $request->input('cameraMovement');
-        $cameraMovement = $cameraMovement ? json_encode($cameraMovement, JSON_UNESCAPED_UNICODE) : '';
-        $lensLanguage = $request->input('lensLanguage');
-        $lensLanguage = $lensLanguage ? json_encode($lensLanguage, JSON_UNESCAPED_UNICODE) : '';
-        $aspectRatio = $request->input('aspectRatio');
-        $viewpoint = $request->input('viewpoint');
+        $attributes = $request->input('attributes');
 
         if ($fileList) {
             $file = $fileList[0];
@@ -459,30 +378,37 @@ class ShotController extends Controller
 
             $shot->duration = $duration;
         }
-        
-        $shot->film = $filmName;
-        $shot->genre = $genre;
-        $shot->director = $director;
-        $shot->actors = $actors;
-        $shot->roles_and_gender = $rolesAndGender;
-        $shot->tags = $tags;
-        $shot->color = $color;
-        $shot->color_system = $colorSystem;
-        $shot->time_of_day = $timeOfDay;
-        $shot->aspect_ratio = $aspectRatio;
-        $shot->lighting = $lighting;
-        $shot->lighting_type = $lightingType;
-        $shot->shot_type = $shotType;
-        $shot->camera_angle = $cameraAngle;
-        $shot->camera_movement = $cameraMovement;
-        $shot->lens_language = $lensLanguage;
-        $shot->viewpoint = $viewpoint;
+
+        $shot->movie_id = $movieId;
+        //  $shot->attributes = json_encode($attributes, JSON_UNESCAPED_UNICODE);
+        // 在Model中设置 $casts 属性后 Laravel 会自动将 $attributes 转换为JSON格式
+        $shot->attributes = $attributes;
+
         $shot->user_id = 1;
         $shot->save();
+
+        $shot->people()->sync($actors);
+
+        $tags = trim($request->input('tags'));
+        $tags = $tags ? preg_replace($pattern, ' ', $tags) : '';
+        $tags = explode(' ', $tags);
+        $tagItems = [];
+        foreach($tags as $tag) {
+            $tagItem = Tag::firstOrNew(['name' => $tag]);
+            if (!$tagItem->exist) {
+                $tagItem->name = $tag;
+                $tagItem->status = 0;
+                $tagItem->save();
+            }
+            array_push($tagItems, $tagItem->id);
+        }
+
+        $shot->tags()->sync($tagItems);
 
         return response()->json([
             'shot' => $shot
         ]);
     }
+    
 }
 

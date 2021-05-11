@@ -7,13 +7,13 @@
                 hide-required-asterisk
                 class="w-1/2 p-8 m-auto border-2 border-gray-800">
                 <el-form-item label="邮箱">
-                    <el-input :model="loginForm.email" ></el-input>
+                    <el-input v-model="loginForm.email" ></el-input>
                 </el-form-item>
                 <el-form-item label="密码">
-                    <el-input :model="loginForm.password"></el-input>
+                    <el-input v-model="loginForm.password" show-password></el-input>
                 </el-form-item>
                 <el-form-item >
-                    <el-button class="w-full">登录</el-button>
+                    <el-button class="w-full" @click="handleLogin">登录</el-button>
                 </el-form-item>
                 <el-form-item>
                     <router-link class="float-left text-blue-500" to="/password/forget">忘记密码?</router-link>
@@ -25,6 +25,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
 import AppLayout from '../../layout/AppLayout.vue';
 
 export default {
@@ -34,13 +35,13 @@ export default {
     data() {
         return {
             loginForm: {
-                email: '',
-                password: '',
+                email: 'shouwenxiang@zfilmaker.com',
+                password: '12345678',
             },
 
             rules: {
                 email: [
-                    { required: true, type: "email", message: '请输入工号', trigger: 'blur' },
+                    { required: true, type: "email", message: '请输入邮箱', trigger: 'blur' },
                 ],
                 password: [
                     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -66,6 +67,23 @@ export default {
     },
 
     methods: {
+        ...mapActions('auth/users', [
+            'login',
+        ]),
+        
+        handleLogin() {
+            let vm = this;
+            vm.$refs['loginForm'].validate((valid) => {
+                if (!valid) {
+                    return;
+                }
+                this.login(vm.loginForm).then((response) => {
+                    // vm.$router.go(-1);
+                }).catch((error) => {
+                    console.log(error);
+                })
+            })
+        }
     },
 
     created() {

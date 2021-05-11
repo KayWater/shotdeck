@@ -39,6 +39,17 @@ export const shots = {
             });
         },
 
+        getShotAttributes({commit}, id) {
+            return new Promise((resolve, reject) => {
+                ShotAPI.getShotAttributes(id)
+                    .then((response) => {
+                        resolve(response.data);
+                    }).catch((error) => {
+                        reject(error.response.data);
+                    });
+            });
+        },
+
         deleteShot({commit}, id) {
             return new Promise((resolve, reject) => {
                 ShotAPI.deleteShot(id)

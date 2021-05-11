@@ -1,4 +1,4 @@
-import AdministartorsAPI from '../../api/administrators.js';
+import AdministartorsAPI from '../../../api/administrators.js';
 
 export const administrators = {
     namespaced: true,
@@ -7,10 +7,6 @@ export const administrators = {
      * Defines state being minitored for users module
      */
     state: {
-        /**
-         * Current user
-         */
-        currentUser: null,
     },
 
     /**
@@ -24,10 +20,10 @@ export const administrators = {
             return new Promise((resolve, reject) => {
                 AdministartorsAPI.getCurrentUser()
                     .then((response) => {
-                        commit('setCurrentUser', response.data.user);
+                        commit('users/setCurrentUser', response.data.user, { root: true });
                         resolve(response.data);
                     }).catch((error) => {
-                        commit('setCurrentUser', null);
+                        commit('users/setCurrentUser', null, { root: true });
                         reject(error.response.data);
                     });
             });
@@ -200,12 +196,6 @@ export const administrators = {
      * Defines mutations used to update state
      */
     mutations: {
-        /**
-         * Set current user
-         */
-        setCurrentUser(state, user) {
-            state.currentUser = user;
-        },
 
     },
 
@@ -213,13 +203,6 @@ export const administrators = {
      * Defines getters used to retrieve state
      */
     getters: {
-        roles (state) {
-            return state.currentUser ? state.currentUser.roles.map(role => { return role.name }) : [];
-            // return  state.currentUser.roles.map(role => { return role.name });
-        },
-
-        hasRole: (state) => (name) => {
-            return !!state.currentUser.roles.find((role) => role.name == name);
-        },
+        
     }
 }

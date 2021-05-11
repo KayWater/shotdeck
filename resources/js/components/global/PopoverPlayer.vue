@@ -7,71 +7,61 @@
                         <source :src="src" type="video/mp4">
                     </video>
                 </div>
-                <ul class="text-white ml-2 w-2/12 flex-none">
+                <ul v-if="info" class="text-white ml-2 w-2/12 flex-none">
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">片名&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.film }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">片名:</span>
+                        <div class="inline-block w-3/5">
+                        <span class="inline-block mx-1">{{ info.movie.name }}</span>
+                        </div>
                     </li>
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">影片类型&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.genre | format }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">类型:</span>
+                        <div class="inline-block w-3/5">
+                            <template v-for="genre in info.movie.genres">
+                                <span :key="genre.id" class="mx-1">{{ genre.name }}</span>
+                            </template>
+                        </div>
                     </li>
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">导演&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.director | format }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">导演:</span>
+                        <div class="inline-block w-3/5">
+                        <template v-for="person in info.movie.people">
+                            <span :key="person.id" class="mx-1">{{ person.name }}</span>
+                        </template>
+                        </div>
                     </li>
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">演员&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.actors | format }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">演员:</span>
+                        <div class="inline-block w-3/5">
+                        <template v-for="person in info.people">
+                            <span :key="person.id" class="mx-1">{{ person.name }}</span>
+                        </template>
+                        </div>
                     </li>
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">时长&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.duration | durationFormat }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">时长:</span>
+                        <div class="inline-block w-3/5">
+                        <span class="mx-1">{{ info.duration | durationFormat }}</span>
+                        </div>
                     </li>
                     <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">标签&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.tags | format }}</span>
+                        <span class="w-2/5 inline-block text-right self-start">标签:</span>
+                        <div class="inline-block w-3/5">
+                        <template v-for="tag in info.tags">
+                            <span :key="tag.id" class="mx-1">{{ tag.name }}</span>
+                        </template>
+                        </div>
                     </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">角色性别&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.roles_and_gender }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">色彩&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.color }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">色系&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.color_system }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">灯光类型&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.lighting }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">照明类型&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.lighting_type }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">景别&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.shot_type | format }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">摄像机角度&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.camera_angle | format }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">摄像机运动&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.camera_movement | format }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">镜头语言&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.lens_language | format }}</span>
-                    </li>
-                    <li class="flex">
-                        <span class="w-2/5 inline-block text-right self-start">视点&nbsp;&nbsp;:</span>
-                        <span class="w-2/5 inline-block ml-2">{{ info.viewpoint }}</span>
-                    </li>
+                    <template v-for="attribute in info.attributes_str">
+                        <li :key="attribute.id" class="flex">
+                            <span class="w-2/5 inline-block text-right self-start">{{ attribute.name }}:</span>
+                            <div class="inline-block w-3/5">
+                                <template v-for="value in attribute.values">
+                                    <span :key="value.id" class="mx-1">{{ value.name }}</span>
+                                </template>
+                            </div>
+                        </li>
+                    </template>
                 </ul>
                 <div class="btn-group">
                     <button class="player-close-btn" @click="closePlayer">X</button>
@@ -103,18 +93,6 @@ export default {
 
     data() {
         return {
-        }
-    },
-
-    filters: {
-        format: function (value) {
-            if (value) {
-                value = JSON.parse(value);
-                return value.reduce(function(accumulator, currentValue) {
-                    return accumulator + " | " + currentValue;
-                });
-            }
-            return "";
         }
     },
 
@@ -150,7 +128,6 @@ export default {
     },
 
     created() {
-
     }
 }
 </script>

@@ -62,7 +62,142 @@ export const constantRouterMap = [
         },
     },
 
-    
+    {
+        path: '/administrator/login',
+        component: Vue.component('Login', require('./components/pages/administrators/auth/Login.vue').default),
+        name: 'administrator-login',
+        meta: {
+            title: 'AdministratorLogin',
+        }
+    },
+
+    {
+        path: '/administrator/dashboard',
+        component: Vue.component('Dashboard', require('./components/pages/administrators/Dashboard.vue').default),
+        name: 'administrator-dashboard',
+        meta: {
+            title: 'AdministratorDashboard',
+        }
+    },
+
+    {
+        path: '/properties',
+        component: Vue.component('PropertyIndex', require('./components/pages/properties/Index.vue').default),
+        name: 'property-index',
+        meta: {
+            title: '属性管理',
+            sidebar: true,
+        },
+        children: [
+            {
+                path: '',
+                component: Vue.component('PropertyList', require('./components/pages/properties/List.vue').default),
+                name: 'property-list',
+                meta: {
+                    title: '属性列表',
+                    sidebar: true
+                },
+            },
+
+            {
+                path: 'create',
+                component: Vue.component('PropertyCreate', require('./components/pages/properties/Create.vue').default),
+                name: 'property-create',
+                meta: {
+                    title: '新建属性',
+                }
+            },
+
+            {
+                path: 'values',
+                component: Vue.component('PropertyValues', require('./components/pages/properties/PropertyValues.vue').default),
+                name: 'property-values',
+                meta: {
+                    title: '属性值列表',
+                    sidebar: true,
+                },
+            },
+
+            {
+                path: ':id',
+                component: Vue.component('PropertyShow', require('./components/pages/properties/PropertyShow.vue').default),
+                name: 'property-show',
+                meta: {
+                    tile: '属性页面',
+                },
+                props: true
+            },
+
+            {
+                path: ':id/values/create',
+                component: Vue.component('PropertyValueCreate', require('./components/pages/properties/PropertyValueCreate.vue').default),
+                name: 'property-value-create',
+                meta: {
+                    title: '添加属性值',
+                },
+                props: true
+            },
+
+            {
+                path: ':pid/values/:vid',
+                component: Vue.component('PropertyValueEdit', require('./components/pages/properties/PropertyValueEdit.vue').default),
+                name: 'property-value-edit',
+                meta: {
+                    title: '编辑属性值',
+                },
+                props: true
+            },
+
+            
+        ]
+    },
+
+    {
+        path: '/movies/create',
+        component: Vue.component('MovieCreate', require('./components/pages/movies/MovieCreate.vue').default),
+        name: 'movie-create',
+        meta: {
+            title: 'movieCreate',
+        },
+    },
+
+    {
+        path: '/movies',
+        component: Vue.component('MovieList', require('./components/pages/movies/MovieList.vue').default),
+        name: 'movies',
+        meta: {
+            title: 'movieList',
+        },
+    },
+
+    {
+        path: '/movies/:id',
+        component: Vue.component('MovieShow', require('./components/pages/movies/MovieShow.vue').default),
+        name: 'movie-show',
+        meta: {
+            title: 'movieShow',
+        },
+        props: true
+    },
+
+    {
+        path: '/movies/:id/edit',
+        component: Vue.component('MovieEdit', require('./components/pages/movies/MovieEdit.vue').default),
+        name: 'movie-edit',
+        meta: {
+            title: 'movieEdit',
+        },
+        props: true
+    },
+
+    {
+        path: '/people/create',
+        component: Vue.component('PeopleCreate', require('./components/pages/people/PeopleCreate').default),
+        name: 'people-create',
+        meta: {
+            title: 'peopleCreate',
+        }
+    }
 ];
 
 export default new VueRouter({

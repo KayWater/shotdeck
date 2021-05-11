@@ -1,17 +1,15 @@
-import AuthAPI from '../../../api/administrator/auth.js';
+import AuthAPI from '../../../api/auth.js';
 import moment from 'moment';
 
-export const adminAuth = {
+export const users = {
+    
     namespaced: true,
 
     /**
      * Defines the state being minitored for the module.
      */
     state: {
-        /**
-         * accessToken
-         */
-        accessToken: window.localStorage.getItem('admin_access_token')
+
     },
 
     /**
@@ -26,16 +24,23 @@ export const adminAuth = {
                 AuthAPI.login(data)
                     .then((response) => {
                         let data = response.data;
-                        commit('setAccessToken', data.access_token);
-                        window.localStorage.setItem('admin_access_token', data.access_token);
-                        window.localStorage.setItem('admin_expired_at', moment().add(data.expires_in, 's').unix());
-                        window.localStorage.setItem('admin_refresh_token', data.refresh_token);
-                        window.localStorage.setItem('admin_token_type', data.token_type);
+                        window.localStorage.setItem('access_token', data.access_token);
+                        window.localStorage.setItem('expired_at', moment().add(data.expires_in, 's').unix());
+                        window.localStorage.setItem('refresh_token', data.refresh_token);
+                        window.localStorage.setItem('token_type', data.token_type);
+                        window.localStorage.setItem('is_admin', 0);
                         window.axios.defaults.headers.common['Authorization'] = data.token_type + " " + data.access_token;
+
+                        // commit('setAccessToken', data.access_token);
+                        // 从全局命名空间提交父模块的mutation
+                        commit('auth/setAccessToken', data.access_token, { root: true });
+                        commit('auth/setIsAdmin', 0, { root: true });
+
                         resolve(response.data);
                     }).catch((error) => {
-                        reject(error.response.data);
                         console.log(error);
+                        reject(error.response.data);
+                        
                     });
             });
         },
@@ -47,10 +52,11 @@ export const adminAuth = {
             return new Promise((resolve, reject) => {
                 AuthAPI.logout()
                     .then((response) => {
-                        window.localStorage.removeItem('admin_access_token');
-                        window.localStorage.removeItem('admin_expired_at');
-                        window.localStorage.removeItem('admin_refresh_token');
-                        window.localStorage.removeItem('admin_token_type');
+                        window.localStorage.removeItem('access_token');
+                        window.localStorage.removeItem('expired_at');
+                        window.localStorage.removeItem('refresh_token');
+                        window.localStorage.removeItem('token_type');
+                        window.localStorage.removeItem('is_admin');
                         commit('setAccessToken', null);
                         resolve(response.data);
                     }).catch((error) => {
@@ -65,17 +71,19 @@ export const adminAuth = {
                     .then((response) => {
                         let data = response.data;
                         commit('setAccessToken', data.access_token);
-                        window.localStorage.setItem('admin_access_token', data.access_token);
-                        window.localStorage.setItem('admin_expired_at', moment().add(data.expires_in, 's').unix());
-                        window.localStorage.setItem('admin_refresh_token', data.refresh_token);
-                        window.localStorage.setItem('admin_token_type', data.token_type);
+                        window.localStorage.setItem('access_token', data.access_token);
+                        window.localStorage.setItem('expired_at', moment().add(data.expires_in, 's').unix());
+                        window.localStorage.setItem('refresh_token', data.refresh_token);
+                        window.localStorage.setItem('token_type', data.token_type);
+                        window.localStorage.setItem('is_admin' , 0);
                         window.axios.defaults.headers.common['Authorization'] = data.token_type + " " + data.access_token;
                         resolve(response.data);
                     }).catch((error) => {
-                        window.localStorage.removeItem('admin_access_token');
-                        window.localStorage.removeItem('admin_expired_at');
-                        window.localStorage.removeItem('admin_refresh_token');
-                        window.localStorage.removeItem('admin_token_type');
+                        window.localStorage.removeItem('access_token');
+                        window.localStorage.removeItem('expired_at');
+                        window.localStorage.removeItem('refresh_token');
+                        window.localStorage.removeItem('token_type');
+                        window.localStorage.removeItem('is_admin');
                         commit('setAccessToken', null);
                         reject(error.response.data);
                     })
@@ -87,23 +95,13 @@ export const adminAuth = {
      * Defines the mutations to update the state
      */
     mutations: {
-        /**
-         * Set accessToken
-         */
-        setAccessToken(state, token) {
-            state.accessToken = token;
-        }
+
     },
 
     /**
      * Defines the getters to retrieve the state
      */
     getters: {
-        /**
-         * Whether is logined
-         */
-        isLogined: (state) => {
-            return !!state.accessToken;
-        }
+        
     }
 }

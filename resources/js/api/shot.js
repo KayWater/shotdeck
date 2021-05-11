@@ -21,4 +21,8 @@ export default {
     updateShot: function(data) {
         return axios.put(CONFIG.API_URL + '/shots/' + data.id, data);
     },
+
+    getShotAttributes: function(id) {
+        return axios.get(CONFIG.API_URL + '/shots/' + id + '/attributes')
+    }
 }

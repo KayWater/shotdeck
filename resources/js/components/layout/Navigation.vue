@@ -1,17 +1,29 @@
 <template>
-    <div class="flex flex-row container leading-10">
-        <h2 class="h-14 leading-10"><router-link :to="{ path : '/' }">子非影人</router-link></h2>
-        <ul class="ml-10 flex flex-row">
-            <li class="mx-1 px-1 md:mx-3 md:px-3"><a>TEST1</a></li>
-            <li class="mx-1 px-1 md:mx-3 md:px-3"><a>TEST2</a></li>
-            <li class="mx-1 px-1 md:mx-3 md:px-3"><a>TEST3</a></li>
-        </ul>
+    <div class="container flex justify-between leading-10">
+        <h2 class="text-xl leading-10"><router-link :to="{ path : '/' }">首页</router-link></h2>
+        <div class="inline-block">
+            <template v-if="!isLogined">
+                <router-link class="float-right mr-2" to="/register">注册</router-link>
+                <router-link class="float-right mr-2" to="/login">登录</router-link>
+            </template>
+            <template v-else-if="!isAdmin && currentUser">
+                <p class="float-right">{{ currentUser.name }}</p>
+            </template>
+        </div>
     </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 export default {
-    name: 'navigation'
+    name: 'navigation',
+
+    computed: {
+        ...mapGetters('auth', [
+            'isLogined',
+            'isAdmin',
+        ])
+    }
 }
 </script>
 

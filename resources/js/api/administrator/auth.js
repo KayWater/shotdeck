@@ -5,14 +5,14 @@ export default {
      * Login
      */
     login: function(data) {
-        return axios.post(CONFIG.API_URL + '/administrator/auth/login', data);
+        return axios.post(CONFIG.API_URL + '/administrators/auth/login', data);
     },
 
     /**
      * Post     /api/v1/auth/logout
      */
     logout: function() {
-        return axios.post(CONFIG.API_URL + '/auth/logout');
+        return axios.post(CONFIG.API_URL + '/administrators/auth/logout');
     },
 
     refreshToken: function(refreshToken) {

@@ -1,6 +1,6 @@
-import UsersAPI from '../../api/users.js';
+import AdministartorsAPI from '../../../api/administrators.js';
 
-export const users = {
+export const administrators = {
     namespaced: true,
 
     /**
@@ -11,7 +11,6 @@ export const users = {
          * Current user
          */
         currentUser: null,
-
     },
 
     /**
@@ -23,7 +22,7 @@ export const users = {
          */
         getCurrentUser({commit}) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getCurrentUser()
+                AdministartorsAPI.getCurrentUser()
                     .then((response) => {
                         commit('setCurrentUser', response.data.user);
                         resolve(response.data);
@@ -39,7 +38,7 @@ export const users = {
          */
         createUser({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.createUser(data)
+                AdministartorsAPI.createUser(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -53,7 +52,7 @@ export const users = {
          */
         getUsers({commit}, params) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getUsers(params)
+                AdministartorsAPI.getUsers(params)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -67,7 +66,7 @@ export const users = {
          */
         getUser({commit}, id) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getUser(id)
+                AdministartorsAPI.getUser(id)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -81,7 +80,7 @@ export const users = {
          */
         search({commit}, params) {
             return new Promise((resolve, reject) => {
-                UsersAPI.search(params)
+                AdministartorsAPI.search(params)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -95,7 +94,7 @@ export const users = {
          */
         updateUser({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.updateUser(data)
+                AdministartorsAPI.updateUser(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -109,7 +108,7 @@ export const users = {
          */
         getRoles({commit}, userId) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getRoles(userId)
+                AdministartorsAPI.getRoles(userId)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -120,7 +119,7 @@ export const users = {
 
         getPermissions({commit}, userId) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getPermissions(userId)
+                AdministartorsAPI.getPermissions(userId)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -134,7 +133,7 @@ export const users = {
          */
         getDirectPermissions({commit}, userId) {
             return new Promise((resolve, reject) => {
-                UsersAPI.getDirectPermissions(userId)
+                AdministartorsAPI.getDirectPermissions(userId)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -148,7 +147,7 @@ export const users = {
          */
         grantRoles({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.grantRoles(data)
+                AdministartorsAPI.grantRoles(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -162,7 +161,7 @@ export const users = {
          */
         cancelRole({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.cancelRole(data)
+                AdministartorsAPI.cancelRole(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -173,7 +172,7 @@ export const users = {
 
         grantPermissions({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.grantPermissions(data)
+                AdministartorsAPI.grantPermissions(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -187,7 +186,7 @@ export const users = {
          */
         cancelPermission({commit}, data) {
             return new Promise((resolve, reject) => {
-                UsersAPI.cancelPermission(data)
+                AdministartorsAPI.cancelPermission(data)
                     .then((response) => {
                         resolve(response.data);
                     }).catch((error) => {
@@ -215,9 +214,6 @@ export const users = {
      */
     getters: {
         roles (state) {
-            if (state.currentUser && state.currentUser.roles.length === 0) {
-                return ['guest'];
-            }
             return state.currentUser ? state.currentUser.roles.map(role => { return role.name }) : [];
             // return  state.currentUser.roles.map(role => { return role.name });
         },

@@ -1,7 +1,12 @@
 <template>
     <div class="text-center">
         <slot>
-            {{ title }}
+            <template v-if="noMore">
+                <p>No More Data</p>
+            </template>
+            <template v-else>
+                {{ title }}
+            </template>
         </slot>
     </div>
 </template>
@@ -12,6 +17,11 @@ export default {
         title: {
             type: String,
             default: '加载更多'
+        },
+
+        noMore: {
+            type: Boolean,
+            default: false,
         }
     },
     data() {

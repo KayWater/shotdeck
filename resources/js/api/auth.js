@@ -6,7 +6,7 @@ export default {
      */
     login: function(data) {
         return axios.post(CONFIG.API_URL + '/auth/login', {
-            employeeId: data.employeeId,
+            email: data.email,
             password: data.password
         });
     },
@@ -22,5 +22,5 @@ export default {
         return axios.post(CONFIG.API_URL + '/auth/refresh-token', {
             refreshToken: refreshToken,
         });
-    }
+    },
 }

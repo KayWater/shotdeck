@@ -17,27 +17,11 @@ class CreateShotsTable extends Migration
             $table->id();
             $table->string('url');
             $table->string('thumbnail');
-            $table->string('film');
+            $table->string('movie_id');
             $table->string('duration');
-            $table->string('genre')->nullable();
-            $table->string('director')->nullable();
-            $table->string('actors')->nullable();
-            $table->string('roles_and_gender')->nullable();
-            $table->string('color')->nullable();
-            $table->string('color_system')->nullable();
-            $table->string('time_of_day')->nullable();
-            $table->string('lighting')->nullable();
-            $table->string('lighting_type')->nullable();
-            $table->string('shot_type')->nullable();
-            $table->string('camera_angle')->nullable();
-            $table->string('camera_movement')->nullable();
-            $table->string('lens_language')->nullable();
-            $table->string('aspect_ratio')->nullable();
-            $table->string('viewpoint')->nullable();
+            $table->json('attributes');
 
-            $table->string('tags');
-            
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('user_id');
             $table->timestamps();
         });
     }
